@@ -1,0 +1,475 @@
+#define FORWARD 0x0077
+#define BACKWARD 0x0073
+#define LEFTWARD 0x0061
+#define RIGHTWARD 0x0064
+#define LEFTSPIN 0x0071
+#define RIGHTSPIN 0x0065
+#define SPEEDOWN 0x0104
+#define SPEEDUP 0x0105
+#define TAKEOFF 0x0153
+#define LAND 0x0152
+#define Up 0x0103
+#define Down 0x0102
+#define TRACE 0x0074
+#define HOVER 0x002f
+#include <conio.h>
+#include <stdio.h>
+//#include <ardrone_api.h>
+#include <signal.h>
+#include <ardrone_testing_tool.h>
+#include <VP_Api/vp_api_thread_helper.h>
+//#include <ardrone_tool/ardrone_tool.h>
+//#include <ardrone_tool/ardrone_tool_configuration.h>
+#include <ardrone_tool/ardrone_version.h>
+#include <ardrone_tool/Video/video_stage.h>
+#include <ardrone_tool/Video/video_recorder_pipeline.h>
+//#include <ardrone_tool/Navdata/ardrone_navdata_client.h>
+#include <VP_Os/vp_os_print.h>
+#include <VP_Api/vp_api_thread_helper.h>
+#include <VP_Os/vp_os_signal.h>
+#include <VP_Os/vp_os_delay.h>
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <unistd.h>
+#include <gtk/gtk.h>
+#define BUFLEN 256
+#define PORT 5556
+#define SRV_IP "192.168.1.1"
+
+pthread_mutex_t lock1;
+
+static struct sockaddr_in ATcmd;
+static int s,slen=sizeof(ATcmd);
+static char buf[BUFLEN];
+
+
+static void init_drone_to_5556(void)
+{
+	if((s=socket(AF_INET,SOCK_DGRAM,IPPROTO_UDP))==-1)
+                printf("AT socket init error\n");
+        
+        vp_os_memset((char *) &ATcmd,0,sizeof(ATcmd));
+//   	memset((char *) &ATcmd,0,sizeof(ATcmd));
+     	ATcmd.sin_family=AF_INET;
+        ATcmd.sin_port=htons(PORT);
+
+        if(inet_aton(SRV_IP,&ATcmd.sin_addr)==0)
+        {
+                cprintf("init_aton failed\n");
+                exit(1);
+        }
+     //   else
+       // {
+         //       cprintf("DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD\n");
+       // }
+
+	sprintf(buf,"AT*CONFIG=1,\"control:altitude_max\",\"3000\"\r");
+	
+	if(sendto(s,buf,BUFLEN,0,&ATcmd,slen)==-1)
+        {
+        	cprintf("send to failed\n");
+        }
+	/*
+	//debug section//
+
+       //	printf("b:%s",buf);
+	int i=0;
+	int j=0;
+	for(;;)
+	{	i++;
+		printf("wswswswwwww\n");
+		sprintf(buf,"AT*REF=%d,290718208\r",1);
+        	if(sendto(s,buf,BUFLEN,0,&ATcmd,slen)==-1)
+        	{
+        		printf("send to failed\n");
+        	}
+		if(i==10)
+		{
+			i=0;
+			clrscr();
+		}
+	};
+	*/
+}
+
+
+
+int control_main()
+{
+        int c;
+	//float speed=(float)0.1;
+	int seq=1;
+	init_drone_to_5556();
+	int in=0;
+	int go=0;
+	int token=0;
+	int hover=0;
+//	i=intofloat
+        while(1)
+        {
+		
+		c=NULL;
+		hover=1;
+		cprintf("POS_X&Y tracing:(%d,%d)\n",POS_X,POS_Y);		
+		cprintf("None_zero_area:%d\n",None_zero_area);		
+		cprintf("MOV_X&Y:(%d,%d)\n",MOV_X,MOV_Y);
+                c=getch();
+                if (27==c)
+                        break;
+                if (0==c||0xe0==c)
+                        c|=getch()<<8;
+		
+		clrscr();
+
+		switch(c)
+                {
+                        case FORWARD:
+				clrscr();
+				hover=0;
+				/*
+				cprintf("SEQ:%d\n",seq);
+                                sprintf(buf,"AT*PCMD=%d,1,0,-1045220557,0,0\r",seq++);
+                                if(sendto(s,buf,BUFLEN,0,&ATcmd,slen)==-1)
+                                {
+                                        printf("send to failed\n");
+                                }
+				*/
+				//ardrone_at_set_progress_cmd(1,0.3,0,0,0);
+                                ardrone_tool_set_progressive_cmd(1,0,-1056964608,0,0,0);
+		//		vp_os_delay(500);	
+				//ardrone_tool_set_progressive_cmd(1,0,0,0,0,0);
+				cprintf("moving forward\n");
+                                //continue;
+				break;
+                        case BACKWARD:
+				clrscr();
+				hover=0;
+				/*
+				cprintf("SEQ:%d\n",seq);
+                                sprintf(buf,"AT*PCMD=%d,1,0,1045220557,0,0\r",seq++);
+                                if(sendto(s,buf,BUFLEN,0,&ATcmd,slen)==-1)
+                                {
+                                        printf("send to failed\n");
+                                }*/
+				//ardrone_at_set_progress_cmd(1,-0.3,0,0,0);
+				ardrone_tool_set_progressive_cmd(1,0,1056964608,0,0,0);
+		//		ardrone_tool_set_progressive_cmd(1,0,0,0,0,0);                                
+				cprintf("moving backward\n");
+                                //continue;
+				break;
+                        case LEFTWARD:
+				clrscr();
+				hover=0;
+				/*
+				cprintf("SEQ:%d\n",seq);
+                                sprintf(buf,"AT*PCMD=%d,1,-1045220557,0,0,0\r",seq++);
+                                if(sendto(s,buf,BUFLEN,0,&ATcmd,slen)==-1)
+                                {
+                                        printf("send to failed\n");
+                                }
+				*/
+				ardrone_tool_set_progressive_cmd(1,-1056964608,0,0,0,0);
+ 		//		ardrone_tool_set_progressive_cmd(1,0,0,0,0,0);
+	                        cprintf("moving left\n");
+                                //continue;
+				break;
+                        case RIGHTWARD:
+				clrscr();
+				hover=0;
+				/*
+				cprintf("SEQ:%d\n",seq);
+                                sprintf(buf,"AT*PCMD=%d,1,1045220557,0,0,0\r",seq++);
+                                if(sendto(s,buf,BUFLEN,0,&ATcmd,slen)==-1)
+                                {
+                                        printf("send to failed\n");
+                                }
+				*/
+				ardrone_tool_set_progressive_cmd(1,1056964608,0,0,0,0);
+		//		ardrone_tool_set_progressive_cmd(1,0,0,0,0,0);                                
+				cprintf("moving right\n");
+                                //continue;
+				break;
+                        case LEFTSPIN:
+				clrscr();
+				hover=0;
+				/*
+				cprintf("SEQ:%d\n",seq);
+                                sprintf(buf,"AT*PCMD=%d,1,0,0,0,-1056964608\r",seq++);
+                                if(sendto(s,buf,BUFLEN,0,&ATcmd,slen)==-1)
+                                {
+                                        printf("send to failed\n");
+                                }
+				*/
+				//ardrone_tool_set_progressive_cmd(1,0,0,0,0,-1056964608);
+			//	ardrone_tool_set_progressive_cmd(1,0,0,0,-1090519040,0);
+				ardrone_tool_set_progressive_cmd(1,0,0,0,-1056964608,0);
+                                cprintf("spin left\n");
+                                //continue;
+				break;
+			case RIGHTSPIN:
+				clrscr();
+				hover=0;
+				/*
+				cprintf("SEQ:%d\n",seq);
+                                sprintf(buf,"AT*PCMD=%d,1,0,0,0,1056964608\r",seq++);
+                                if(sendto(s,buf,BUFLEN,0,&ATcmd,slen)==-1)
+                                {
+                                        printf("send to failed\n");
+                                }
+				*/
+				//ardrone_tool_set_progressive_cmd(1,0,0,0,0,1056964608);
+				ardrone_tool_set_progressive_cmd(1,0,0,0,1056964608,0);
+				cprintf("spin right\n");
+                                //continue;
+				break;
+                        case Up:
+				clrscr();
+				hover=0;
+				/*
+				cprintf("SEQ:%d\n",seq);
+                                sprintf(buf,"AT*PCMD=%d,1,0,0,0,-1056964608\r",seq++);
+                                if(sendto(s,buf,BUFLEN,0,&ATcmd,slen)==-1)
+                                {
+                                        printf("send to failed\n");
+                                }
+				*/
+				//ardrone_tool_set_progressive_cmd(1,0,0,0,0,-1056964608);
+				ardrone_tool_set_progressive_cmd(1,0,0,1045220557,0,0);
+                                cprintf("go up\n");
+				//continue;
+				break;
+                        case Down:
+				clrscr();
+				hover=0;
+				/*
+				cprintf("SEQ:%d\n",seq);
+                                sprintf(buf,"AT*PCMD=%d,1,0,0,0,-1056964608\r",seq++);
+                                if(sendto(s,buf,BUFLEN,0,&ATcmd,slen)==-1)
+                                {
+                                        printf("send to failed\n");
+                                }
+				*/
+				//ardrone_tool_set_progressive_cmd(1,0,0,0,0,-1056964608);
+				ardrone_tool_set_progressive_cmd(1,0,0,-1102263091,0,0);
+                                cprintf("go down\n");
+                               // continue;
+				break;
+			case TAKEOFF:
+				clrscr();
+				hover=0;
+				token=1;
+				/*
+				seq=1;
+				cprintf("SEQ:%d\n",seq);
+				vp_os_mutex_lock(&lock1);	
+                              	sprintf(buf,"AT*REF=%d,290718208\r",seq);
+                                if(sendto(s,buf,BUFLEN,0,&ATcmd,slen)==-1)
+				{
+					printf("send to failed\n");
+				}
+				vp_os_mutex_unlock(&lock1);
+				*/	
+				ardrone_tool_set_ui_pad_start( 1 );
+				cprintf("takeoff with vpos lock\n");
+				//continue;
+				break;
+			case LAND:
+				clrscr();
+				hover=1;
+				token=0;
+				/*
+				cprintf("SEQ:%d\n",seq);
+				sprintf(buf,"AT*REF=%d,290717696\r",seq++);
+                                if(sendto(s,buf,BUFLEN,0,&ATcmd,slen)==-1)
+                                {
+                                        printf("send to failed\n");
+                                }
+				*/
+				ardrone_tool_set_ui_pad_start( 0 );
+				cprintf("land\n");
+				//continue;
+				break;
+			case HOVER:
+				hover=0;
+				ardrone_tool_set_progressive_cmd(1,0,0,0,0,0);
+				cprintf("Hover\n");
+				//continue;
+				break;
+			case TRACE:
+				clrscr();
+				hover=0;
+				go=0;
+				cprintf("POS_X&Y tracing:(%d,%d)\n",POS_X,POS_Y);
+				cprintf("Central_X&Y:(%d,%d)\n",CENTERAL_X,CENTERAL_Y);
+                		DISTANCE_X=CENTERAL_X-POS_X;
+				DISTANCE_Y=CENTERAL_Y-POS_Y;
+				/*
+				if(DISTANCE_X>=160&&DISTANCE_X<320)
+				{
+					DOMAIN_XY=1;
+					cprintf("DOMAIN 1\n");
+					ardrone_tool_set_progressive_cmd(1,-1119040307,0,0,0,0);
+					//ardrone_tool_set_progressive_cmd(0,0,0,0,0,0);
+					in=0;
+				//	ardrone_tool_set_ui_pad_start( 1 );
+					
+				}
+				else if(DISTANCE_X<-160&&DISTANCE_X>=-320)
+				{
+					DOMAIN_XY=2;
+					cprintf("DOMAIN 2\n");
+					ardrone_tool_set_progressive_cmd(1,1028443341,0,0,0,0);
+					in=0;
+					//ardrone_tool_set_progressive_cmd(0,0,0,0,0,0);
+					
+					
+				}
+				*/	
+				/*	
+				else if(DISTANCE_X<0&&DISTANCE_Y<0)
+				{
+					DOMAIN_XY=3;
+					cprintf("DOMAIN 3\n");
+					ardrone_tool_set_progressive_cmd(1,1028443341,0,0,0,0);
+					//ardrone_tool_set_ui_pad_start( 0 );
+					
+					//ardrone_tool_set_progressive_cmd(0,0,0,0,0,0);
+					
+					
+				}
+				else if(DISTANCE_X>=0&&DISTANCE_Y<0)
+				{
+					DOMAIN_XY=4;
+					cprintf("DOMAIN 4\n");
+					ardrone_tool_set_progressive_cmd(1,-1119040307,0,0,0,0);
+					
+					//ardrone_tool_set_progressive_cmd(0,0,0,0,0,0);
+					
+				}
+				*/
+
+				if(DISTANCE_X<=80&&DISTANCE_X>=-80)
+				{	in=1;
+					//DOMAIN_XY=0;
+					cprintf("center\n");
+					
+				}
+				else if(DISTANCE_X>=80&&DISTANCE_X<320)
+				{
+					in=0;
+				//	ardrone_tool_set_progressive_cmd(1,0,0,0,-1090519040,0);
+					ardrone_tool_set_progressive_cmd(1,0,0,0,-1056964608,0);				
+					cprintf("left\n");
+					//ardrone_tool_set_progressive_cmd(0,0,0,0,0,0);
+				}	
+				else if(DISTANCE_X>=-320&&DISTANCE_X<-80)
+				{
+					in=0;
+					ardrone_tool_set_progressive_cmd(1,0,0,0,1056964608,0);
+					cprintf("right\n");
+					//ardrone_tool_set_progressive_cmd(0,0,0,0,0,0);
+					
+					
+				}		
+				//ardrone_tool_set_progressive_cmd(0,0,0,0,0,0);
+				//vp_os_delay(10);
+				if(in==1)
+				{
+					if(DISTANCE_X>=20&&DISTANCE_X<80)
+					{
+						in=0;
+					//	ardrone_tool_set_progressive_cmd(1,0,0,0,-1090519040,0);
+						ardrone_tool_set_progressive_cmd(1,0,0,0,-1056964608,0);
+						cprintf("left\n");
+						//ardrone_tool_set_progressive_cmd(0,0,0,0,0,0);
+					
+					
+					}	
+					else if(DISTANCE_X>=-80&&DISTANCE_X<-20)
+					{
+						in=0;
+						ardrone_tool_set_progressive_cmd(1,0,0,0,1056964608,0);
+						cprintf("right\n");
+						//ardrone_tool_set_progressive_cmd(0,0,0,0,0,0);
+					
+					
+					}
+					else if(DISTANCE_X<=20&&DISTANCE_X>=-20)
+						ardrone_tool_set_progressive_cmd(1,0,0,0,0,0);
+						
+			   	}
+
+				//vp_os_delay(5);
+				if(DISTANCE_Y<-20&&DISTANCE_Y>=-80)
+				{	
+					in=0;	
+					cprintf("TRACE DOWN");	
+					ardrone_tool_set_progressive_cmd(1,0,0,-1090519040,0,0);	
+					//ardrone_tool_set_progressive_cmd(1,0,0,1036831949,0,0);
+				}
+				
+				else if(DISTANCE_Y<80&&DISTANCE_Y>=20)
+				{				
+					in=0;
+					cprintf("TRACE UP");	
+					ardrone_tool_set_progressive_cmd(1,0,0,1056964608,0,0);
+					//ardrone_tool_set_progressive_cmd(1,0,0,-1110651699,0,0);
+				}
+				
+				else if(DISTANCE_Y<-80&&DISTANCE_Y>=-160)
+				{	
+					in=0;	
+					cprintf("TRACE DOWN");		
+					//ardrone_tool_set_progressive_cmd(1,0,0,1045220557,0,0);
+					ardrone_tool_set_progressive_cmd(1,0,0,-1110651699,0,0);
+				}
+				else if(DISTANCE_Y<160&&DISTANCE_Y>=80)
+				{				
+					in=0;
+					cprintf("TRACE UP");	
+					ardrone_tool_set_progressive_cmd(1,0,0,1036831949,0,0);
+					//ardrone_tool_set_progressive_cmd(1,0,0,-1102263091,0,0);
+				}
+
+				if(DISTANCE_X<=100&&DISTANCE_X>=-100)
+				{	go=1;
+					cprintf("start foward/back\n");
+				}
+
+			        if(go==1)
+				{
+					vp_os_delay(10);
+					if(None_zero_area>=1000)
+					{
+						in=0;
+						ardrone_tool_set_progressive_cmd(1,0,1045220557,0,0,0);
+						cprintf("agent BACK\n");
+					}
+					else if(None_zero_area>=70&&None_zero_area<=800)
+					{
+						in=0;
+						ardrone_tool_set_progressive_cmd(1,0,-1102263091,0,0,0);						
+						cprintf("agent Forward\n");				
+					}	
+					go=0;
+					
+				}
+				
+				
+
+				//continue;
+				break;
+			
+                }
+		if(hover==0)
+		{
+			vp_os_delay(20);
+			cprintf("yayayayayayayayayaya");
+			ardrone_tool_set_progressive_cmd(1,0,0,0,0,0);
+		}
+        }
+	close(s);
+        return 0;
+}
